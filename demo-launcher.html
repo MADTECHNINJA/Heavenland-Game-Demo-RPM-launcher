@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Document</title>
+    <style>
+      html,
+      body {
+        background-image: url("src/background_desktop.png");
+        background-repeat: repeat-y;
+        background-position: center;
+        background-size: cover;
+        color: white;
+        height: 100%;
+        width: 100%;
+      }
+      .button {
+        display: inline-flex;
+        height: 50px;
+        padding: 0;
+        background: #0BA8E0;
+        border: none;
+        outline: none;
+        border-radius: 5px;
+        overflow: hidden;
+        font-family: `Roboto light`, sans-serif;
+        font-size: 25px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      .button:hover {
+        background: #0982ad;
+      }
+
+      .button:active {
+        background: #2D25D6;
+      }
+      .button:disabled {
+        background: #9DACA3;
+      }
+      .button__text,
+      .button__icon {
+        display: inline-flex;
+        align-items: center;
+        padding: 0 24px;
+        color: #fff;
+        height: 100%;
+      }
+
+      .button__icon {
+        font-size: 1.5em;
+        background: rgba(0, 0, 0, 0.08);
+      }
+      .frame {
+        width: 1080px;
+        height: 800px;
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans,
+          Droid Sans, Helvetica Neue, sans-serif;
+        font-size: 14px;
+        border: none;
+      }
+      .content {
+        padding: 10px;
+        text-align: center;
+      }
+      .btnDiv {
+        padding: 10px;
+        margin: auto;
+      }
+      .warning {
+        background-color: #df68a2;
+        padding: 3px;
+        border-radius: 5px;
+        color: white;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="content">
+      <div class="btnDiv">
+        <button id="openBtn" type="button" class="button" onClick="displayIframe()">
+          <span class="button__text">Back to Editor</span>
+          <span class="button__icon">
+            <ion-icon name="open-outline"></ion-icon>
+          </span>
+        </button>
+        <button id="continueBtn" type="button" class="button" onClick="continueToGame()">
+          <span class="button__text">Enter Heavenland</span>
+          <span class="button__icon">
+            <ion-icon name="arrow-forward-outline"></ion-icon>
+          </span>
+        </button>
+      </div>
+      <!-- <h1><b>Select the character in the Ready Player Me interface and then click continue</b></h1> -->
+      <iframe id="frame" class="frame" allow="camera *; microphone *"></iframe>
+    </div>
+
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+    <script>
+
+      const subdomain = 'heavenland';
+      const frame = document.getElementById('frame');
+      const continueBtn = document.getElementById("continueBtn");
+      const redirectUrl = "heavenland://-CharURL=";
+      let avatarUrl = '';
+
+      continueBtn.disabled = "disabled";
+      frame.src = `https://${subdomain}.readyplayer.me/avatar?frameApi`;
+
+      window.addEventListener('message', subscribe);
+      document.addEventListener('message', subscribe);
+
+      function subscribe(event) {
+        const json = parse(event);
+
+        if (json?.source !== 'readyplayerme') {
+          return;
+        }
+
+        // Susbribe to all events sent from Ready Player Me once frame is ready
+        if (json.eventName === 'v1.frame.ready') {
+          frame.contentWindow.postMessage(
+            JSON.stringify({
+              target: 'readyplayerme',
+              type: 'subscribe',
+              eventName: 'v1.**'
+            }),
+            '*'
+          );
+        }
+
+        // Get avatar GLB URL
+        if (json.eventName === 'v1.avatar.exported') {
+          console.log(`Avatar URL: ${json.data.url}`);
+          document.getElementById('frame').hidden = true;
+          continueBtn.disabled = null;
+          avatarUrl = json.data.url;
+        }
+
+        // Get user id
+        if (json.eventName === 'v1.user.set') {
+          console.log(`User with id ${json.data.id} set: ${JSON.stringify(json)}`);
+        }
+      }
+
+      function parse(event) {
+        try {
+          return JSON.parse(event.data);
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function displayIframe() {
+        document.getElementById('frame').hidden = false;
+      }
+
+      function continueToGame() {
+        console.log(`${redirectUrl}${avatarUrl}`)
+        window.location = `${redirectUrl}${avatarUrl}`;
+      }
+    </script>
+  </body>
+</html>
